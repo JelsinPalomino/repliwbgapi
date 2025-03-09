@@ -94,6 +94,34 @@ class Metadata():
 
         return s
 
+    def _repr_html_(self):
+
+        def segment(concept, meta, id=None, name=None):
+            if id and name:
+                s = '<h4>{}: {}, {}</h4>'.format(concept, id, name)
+            elif id:
+                s = '<h4>{}: {}</h4>'.format(concept, id)
+            else:
+                s = '<h5>{}</h5>'.format(concept)
+
+            rows = []
+            for k,v in meta.items():
+                rows.append([k, v])
+
+            # here we don't call htmlTable because we wrap the entire output in a <div/>
+            return s + tabulate(rows, tablefmt='html', headers=['Field', 'Value'])
+        
+        s = '<div class="wbgapi">' + segment(self.concept, self.metadata, id=self.id, name=self.name)
+        subsets = {'series': 'Economy-Series', 'economies': 'Series-Economy', 'time': 'Series-Time'}
+        for k,v in subsets.items():
+            if hasattr(self, k):
+                d = getattr(self, k)
+                if len(d):
+                    s += segment(v, d)
+        
+        return s + '</div>'
+
+
 def abbreviate(text, q=None, padding=80):
     '''Returns a shortened version of the text string comprised of the search pattern
     and a specified number of characters on either side. This is used to optimize
