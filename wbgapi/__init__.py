@@ -121,6 +121,63 @@ class Metadata():
         
         return s + '</div>'
 
+class MetaDataCollection():
+    def __init__(self, brief=None, padding=80, q=None):
+        self.metadata = {}
+        self.brief = brief
+        self.padding = padding
+        self.q = q
+
+    def append(self, meta):
+        '''Append a Metadata object to our store
+        '''
+
+        if meta.concept not in self.metadata:
+            self.metadata[meta.concept] = []
+
+        self.metadata[meta.concept].append(meta)
+
+    def brief_table(self, tablefmt):
+        rows = []
+        for concept in self.metadata.values():
+            for elem in concept:
+                rows.append([elem.concept, elem.id, elem.name])
+
+        return tabulate(rows, tablefmt=tablefmt, headers=['Concept', 'ID', 'Name'])
+    
+    def __repr__(self):
+        s = ''
+
+        if len(self.metadata) == 0:
+            return 'No match'
+        
+        if self.brief:
+            return self.brief_table('simple')
+        
+        for concept in self.metadata.values():
+            for elem in concept:
+                s += elem.repr(q=self.q, padding=self.padding)
+
+        return s
+    
+    def _repr_html_(self):
+        if len(self.metadata) == 0:
+            return '<div class="wbgapi"><p class="nomatch">No match</p></div>'
+        
+        s = '<div class="wbgapi">'
+        if self.brief:
+            s += self.brief_table('html')
+        else:
+            for concept,hits in self.metadata.items():
+                s += '<h4>{}</h4>'.format(concept)
+                rows = []
+                for metadata in hits:
+                    for k,v in metadata.metadata.items():
+                        rows.append([metadata.id, metadata.name, k, abbreviate(v, q=self.q, padding=self.padding)])
+                
+                s += tabulate(rows, tablefmt='html', headers=['ID', 'Name', 'Field', 'Value'])
+
+        return s + '</div>'
 
 def abbreviate(text, q=None, padding=80):
     '''Returns a shortened version of the text string comprised of the search pattern
