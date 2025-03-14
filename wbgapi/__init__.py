@@ -179,6 +179,43 @@ class MetaDataCollection():
 
         return s + '</div>'
 
+class Feature():
+    def __init__(self, items, columns=None):
+        '''can be initialized with any iterable
+        '''
+        self.items = list(items)
+        self.column = columns if columns else ['id', 'value']
+
+    def __repr__(self):
+
+        rows = self.table()
+        if len(rows) == 0:
+            return ''
+        
+        return tabulate(rows, tablefmt='simple', headers=self.columns)
+
+    def _repr_html_(self):
+
+        rows = self.table()
+        if len(rows) == 0:
+            return ''
+        
+        return htmlTable(rows, headers=self.columns)
+
+    def table(self):
+
+        rows = []
+        if len(self.items) == 0:
+            return rows
+        
+        for row in self.items:
+            rows.append([row[k] for k in self.columns])
+
+        rows.append(['', '{} elements'.format(len(rows))])
+        return rows
+
+
+
 def abbreviate(text, q=None, padding=80):
     '''Returns a shortened version of the text string comprised of the search pattern
     and a specified number of characters on either side. This is used to optimize
@@ -197,3 +234,12 @@ def abbreviate(text, q=None, padding=80):
         return '...' + match.group(0) + '...'
     
     return text
+
+
+def htmlTable(*args, **kwargs):
+    """Generates an HTML table wrapped in a <div class="wbgapi" /> to allow users
+       to customize the display if they wish. All arguments are passed to tabulate;
+       you should not include the 'tablefmt=html' parameter
+    """
+
+    return '<div class="wbgapi">' + tabulate(*args, tablefmt='html', **kwargs) + '</div>'
