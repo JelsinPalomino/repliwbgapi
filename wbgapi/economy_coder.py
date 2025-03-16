@@ -77,3 +77,9 @@ def coder(name, summary=False, debug=None):
             s = re.sub(r'\s+', r'\\s+', s)
 
         return s
+    
+    if _lookup_data is None:
+        _lookup_data = []
+        _coder_names = {}
+        user_data = yaml.safe_load(open(os.path.join(os.path.dirname(__file__), 'lookup-data.yaml'), 'r'))
+        
