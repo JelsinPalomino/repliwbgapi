@@ -26,7 +26,7 @@ except ImportError:
     pd = None
 
 # Defaults: These can be changed at runtime with reasonable results
-enpoint = 'https://api.worldbank.org/v2'
+endpoint = 'https://api.worldbank.org/v2'
 lang = 'en'
 per_page = 1000             # You can increase this if you start getting 'service unavailable' messages, which can mean you're sending too many requests per minute
 db = 2
@@ -179,7 +179,7 @@ class MetaDataCollection():
 
         return s + '</div>'
 
-class Feature():
+class Featureset():
     def __init__(self, items, columns=None):
         '''can be initialized with any iterable
         '''
@@ -214,6 +214,59 @@ class Feature():
         rows.append(['', '{} elements'.format(len(rows))])
         return rows
 
+def fetch(url, params={}, concepts=False, lang=None):
+    '''Iterate over an API request with automatic paging. The API returns a
+    variety of response structures depending on the endpoint. fetch() sniffs
+    the response structure and return the most appropriate set of iterated objects.
+
+    Arguments:
+        url:        partial URL (minus the base URL and langage) for the API query, minus the query string
+
+        params:     optional query string parameters (required defaults are supplied by the function)
+
+        concepts:   pass True to return results at the concept level, as opposed to the element/variable level 
+
+        lang:       preferred language. Pass none to use the global default
+
+    Returns:
+        a generator object.
+
+    Example:
+        for row in wbgapi.data.fetch('countries'):
+          print(row['id'], row['name'])
+
+    Notes:
+        For most use cases there are higher level functions that are easier and safer than
+        calling fetch() directly. But it's still very useful for direct testing and discovery
+        of the API.
+    '''
+
+    global endpoint, per_page
+
+    params_ = {'per_page': per_page}
+    params_.update(params)
+    params_['page'] = 1
+    params_['format'] = 'json'
+
+    totalRecords = None
+    if lang is None:
+        lang = globals()['lang']
+
+    recordsRead = 0
+    while totalRecords is None or recordsRead < totalRecords:
+
+        url_ = '{}/{}/{}?{}'.format(endpoint, lang, url, urllib.parse.urlencode(params_))
+        (hdr,result) = _queryAPI(url_)
+
+        if totalRecords is None:
+            totalRecords = int(hdr['total'])
+
+        data = _responseObjects(url_, result, wantConcepts=concepts)
+        for elem in data:
+            yield elem
+
+        recordsRead += int(hdr['per_page'])
+        params_['page'] +=1
 
 
 def abbreviate(text, q=None, padding=80):
@@ -243,3 +296,63 @@ def htmlTable(*args, **kwargs):
     """
 
     return '<div class="wbgapi">' + tabulate(*args, tablefmt='html', **kwargs) + '</div>'
+
+def _responseHeader(url, result):
+    '''Internal function to return the response header, which contains page information
+    '''
+
+    if type(result) is list and len(result) > 0 and type(result[0]) is dict:
+        # looks like the v2 data API
+        return result[0]
+    
+    if type(result) is dict:
+        # looks like the new beta advanced API
+        return result
+    
+    raise APIError(url, 'Unrecognized response object format')
+
+def _responseObjects(url, result, wantConcepts=False):
+    '''Internal function that returns an array of objects
+    '''
+
+    if type(result) is list and result.get('source'):
+        if type(result['source']) is list and len(result['source']) > 0 and type(result['source'][0]) is dict:
+            # this format is used for metadata and concept lists. Caller may need an array of concept or
+            # an array of the variables of the first concept
+            if wantConcepts:
+                return result['source'][0]['concept']
+            else:
+                return result['source'][0]['concept'][0]['variable']
+            
+        if type(result['source']) is dict:
+            # this format is used to return data in the beta endpoints
+            return result['source']['data']
+        
+    raise APIError(url, 'Unrecognized response object format')
+
+def _queryAPI(url):
+    '''Internal function for calling the API with sanity checks
+    '''
+
+    params = get_options.copy()
+    if proxies:
+        warnings.warn('"proxies" is deprecated and will be removed in a future release. Use "get_options" instead as described in the README', DeprecationWarning)
+        params['proxies'] = proxies
+
+    response = requests.get(url, **params)
+    if response.status_code != 200:
+        raise APIError(url, response.reason, response.status_code)
+    
+    try:
+        result = response.json()
+    except:
+        raise APIResponseError(url, 'JSON decoding error')
+    
+    hdr = _responseHeader(url, result)
+    if hdr.get('message'):
+        msg = hdr['message'][0]
+        raise APIError(url, '{}: {}'.format(msg['key'], msg['value']))
+    
+    return (hdr, result)
+
+_concept_mrv_cache = {}
