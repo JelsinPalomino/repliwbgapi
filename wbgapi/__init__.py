@@ -214,6 +214,24 @@ class Featureset():
         rows.append(['', '{} elements'.format(len(rows))])
         return rows
 
+class Coder(dict):
+    '''Class returned by coder if passed a list of terms
+    '''
+
+    def __repr__(self):
+        rows = self._coder_report()
+        columns = rows.pop(0)
+        return tabulate(rows, tablefmt='simple', headers=columns)
+
+    def _repr_html_(self):
+        rows = self._coder_report()
+        columns = rows.pop(0)
+        return htmlTable(rows, headers=columns)
+
+    def _coder_report(self):
+        return economy.coder_report(self)
+
+
 def fetch(url, params={}, concepts=False, lang=None):
     '''Iterate over an API request with automatic paging. The API returns a
     variety of response structures depending on the endpoint. fetch() sniffs
