@@ -83,3 +83,11 @@ def features(concept, id="all", db=None):
             print(elem['id'], elem['value'])
     '''
 
+    if db is None:
+        db = w.db
+
+    if not id:
+        # e.g., '' or []
+        return []
+
+    return w.refetch('source/{source}/{concept}/{id}', ['id'], source=db, concept=concepts(db)[concept]['key'], id=id)
