@@ -437,8 +437,17 @@ def queryParam(arg, concept=None, db=None):
             for row in source.features(concept, db=db):
                 _concept_mrv_cache[db][concept] = row['id']
         
-        arg = _concept_mrv_cache
+        arg = _concept_mrv_cache[db].get(concept, '')
 
+    if type(arg) is str or type(arg) in int:
+        arg = [arg]
+
+    if concept == 'time':
+        v = time.periods(db)
+        return ';'.join(map(lambda x: str(v.get(str(x), x)), arg))
+
+    # This will throw an exception if arg is not iterable, which is what we want it to do
+    return ';'.join(map(lambda x:str(x), arg))
 
 def _refetch_url(url, var, variables, **kwargs):
     '''Used to chunk potentially very longs URLs smaller ones by splitting long arguments
