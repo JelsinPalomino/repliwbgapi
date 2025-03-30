@@ -314,7 +314,11 @@ def refetch(url, variables, **kwargs):
     params      = kwargs.get('params', {})
 
     try:
-        for url2 in _refe
+        for url2 in _refetch_url(url, variables[0], variables[1:], **kwargs):
+            for row in fetch(url2, params, concepts, lang):
+                yield row
+    except URLError:
+        raise ValueError('{}: parameters exceed the API\'s maximum limit'.format(url))
 
 def abbreviate(text, q=None, padding=80):
     '''Returns a shortened version of the text string comprised of the search pattern
