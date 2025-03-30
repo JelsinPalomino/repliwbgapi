@@ -286,6 +286,35 @@ def fetch(url, params={}, concepts=False, lang=None):
         recordsRead += int(hdr['per_page'])
         params_['page'] +=1
 
+def refetch(url, variables, **kwargs):
+    ''' Repeating fetch: provides a variation of fetch() that allows URLs that exceed the maximium API limit to
+    be chunked.
+
+    Arguments:
+        url:            partial URL with tokens, each of which must have values specified as function arguments. See example below
+
+        variables:      array of variables to be chunked if neccesary, in the order they should be chunked
+
+        **kwargs:       remaining arguments MUST include values for each token in the url string. All arguments to fetch
+                        are also acceptable and are passed to fetch. Any 'chunkable' variable should be a semicolon-separated
+                        value array. Arrays and iterables are not acceptable values.
+    
+    Returns:
+        A generato objects
+
+    Example:
+        # fetch all indicators for Brazil and Argentina
+        s = ';'.join([row['id'] for row in wbgapi.series.list()])
+        for row in wbgapi.refetch('sources/{source}/series/{series}/country/{economy}', ['series', 'economy'], source=2, series=s, economy='BRA;ARG'):
+            print(row)
+    '''
+
+    concepts    = kwargs.get('concepts', False)
+    lang        = kwargs.get('lang', None)
+    params      = kwargs.get('params', {})
+
+    try:
+        for url2 in _refe
 
 def abbreviate(text, q=None, padding=80):
     '''Returns a shortened version of the text string comprised of the search pattern
@@ -405,3 +434,63 @@ def queryParam(arg, concept=None, db=None):
                 _concept_mrv_cache[db][concept] = row['id']
         
         arg = _concept_mrv_cache
+
+
+def _refetch_url(url, var, variables, **kwargs):
+    '''Used to chunk potentially very longs URLs smaller ones by splitting long arguments
+
+    Returns a generator of URLs that will not exceed tha API's maximun string length
+    '''
+
+    global api_maxlen
+
+    def subdivide(parts):
+        # Split a long semicolon separated string into 2 roughly equal segments, on a semicolon boundary
+
+        parts2 = []
+        for s in parts:
+            mp = int(len(s)/2)
+            of = s[mp:].find(';')
+            if of < 0:
+                # part can't be subdivided
+                parts2.append(s)
+            else:
+                parts2.extend([s[:mp+of], s[mp+of+1:]])
+
+        return 
+    
+    kw = kwargs.copy()
+
+    # parts is an array of roughly equal chunks of the value for var. We first try to see
+    # if the entire string can be passed as one, else we chunk it into smaller and smaller pieces
+    parts = [kwargs[var]]
+    sz = None
+    while True:
+        kw[var] = max(parts, key=len)
+        test_url = url.format(**kw)
+        if len(test_url) < api_maxlen:
+            # we are smaller enough
+            for elem in parts:
+                kw[var] = elem
+                yield url.format(**kw)
+
+            return
+
+        # else, subdivide parts and try again
+        parts2 = subdivide(parts)
+        if len(parts) == len(parts2):
+            # can't subdivide any more
+            break
+        else:
+            parts=parts2
+    
+    # by now we'he chunked as much as we can on var. If that's not enough, then we
+    # start chunking the next variable
+    if len(variables) == 0:
+        # if there's no more variables then we cry Uncle and give up
+        raise URLError()
+    
+    for elem in parts:
+        kw[var] = elem
+        for u2 in _refetch_url(url, variables[0], variables[1:], **kw):
+            yield u2
