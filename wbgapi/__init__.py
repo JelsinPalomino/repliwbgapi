@@ -373,4 +373,35 @@ def _queryAPI(url):
     
     return (hdr, result)
 
+
 _concept_mrv_cache = {}
+
+def queryParam(arg, concept=None, db=None):
+    '''Prepare parameters for an API query. This is a core function
+    called by several dimension-specific functions of the same name
+
+    Arguments:
+        arg:            a record identifier or list-like of identifiers
+
+        concept:        concept for the arguments passed
+
+        db:             database; pass None to access the global database
+
+    Returns:
+        a semicolon separated API-ready parameter string    
+    '''
+
+    if db is None:
+        db = globals()['db']
+
+    if type(arg) is str and arg == 'mrv' and concept:
+        global _concept_mrv_cache
+
+        if _concept_mrv_cache.get(db) is None:
+            _concept_mrv_cache[db] = {}
+
+        if _concept_mrv_cache[db].get(concept) is None:
+            for row in source.features(concept, db=db):
+                _concept_mrv_cache[db][concept] = row['id']
+        
+        arg = _concept_mrv_cache
