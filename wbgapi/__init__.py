@@ -449,6 +449,39 @@ def queryParam(arg, concept=None, db=None):
     # This will throw an exception if arg is not iterable, which is what we want it to do
     return ';'.join(map(lambda x:str(x), arg))
 
+def Series(data, key='id', value='value', name=None):
+    '''Convert a list-like to a pandas Series objects. This core function is
+    called by several dimension-specific implementation functions
+
+    Arguments:
+        data:           an object array, generator, or function that returns a list-like
+
+        key:            field for the Series index
+
+        value:          field for the Series column values
+
+        name:           Series column name. If None, same as value
+
+    Returns:
+        a pandas Series object
+
+    Example:
+        Generally you are better off calling the Series function for a specific feature
+        e.g., wbgapi.time.Series(). Direct calls should only be necessary for databases
+        with custom dimensions, for instance.
+
+        wbgapi.Series(wbgapi.source.features('version', db=57))
+    '''
+
+    if pd is None:
+        name = value
+
+    if callable(data):
+        data = data()
+
+    return pd.Series({row[key]: row[value] for row in data}, name=name)
+
+
 def _refetch_url(url, var, variables, **kwargs):
     '''Used to chunk potentially very longs URLs smaller ones by splitting long arguments
 
