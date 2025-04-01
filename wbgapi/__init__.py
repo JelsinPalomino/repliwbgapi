@@ -408,6 +408,40 @@ def metadata(url, variables, concepts='all', **kwargs):
     if m.concept:
         yield m
 
+def search2(q, footnotes='none', db=None):
+    ''' search database metadata for matching text, returning a generator
+
+    Arguments:
+        q:              search term
+        
+        footnotes:      how to treat footnotes: 'include', 'only', or 'none'
+
+        db:             database; pass None to access the global database
+
+    Returns:
+        a generator that provides Metadata objects (same as metadata())
+
+    Notes:
+        The return of this function is the same as for the metadata() function. The difference
+        is that the metadata property contains matching metadata fields and values.
+
+    Example:
+        for row in wbgapi.search2('fossil fuels'):
+            print(row)
+    '''
+
+    if db is None:
+        db = globals()['db']
+
+    try:
+        for row in metadata('sources/{source}/search/{q}', ['source'], source=str(db), q=urllib.parse.quote(q, safe='')):
+            concept = row.concept.lower()
+            if (concept == 'footnotes' and footnotes != 'none') or (concept != 'footnotes' and footnotes != 'only'):
+                yield row
+    except APIResponseError:
+        # if there are no matches, the API returns an error in xml format
+        pass
+
 def _responseHeader(url, result):
     '''Internal function to return the response header, which contains page information
     '''
