@@ -353,6 +353,61 @@ def get(url, params={}, concepts=False, lang=None):
     data = _responseObjects(url_, result, wantConcepts=concepts)
     return data[0] if len(data) > 0 else None
 
+def metadata(url, variables, concepts='all', **kwargs):
+    '''Return metadata records
+
+    Arguments:
+        url:            url with tokens, as per refetch()
+
+        variables:      variables that can be chunked, in priority order (see refetch)
+
+        concepts:       Name or list-like of the concepts to return: 'all' for all concepts
+
+        **kwargs:       Remaining arguments to pass to refetch (must include variables for tokens in url)
+
+    Returns:
+        a generator that returns Metadata objects
+
+    Example:
+        for meta in wbgapi.metadata('sources/2/series/{series}/country/{economy}/metadata', ['series', 'economy'], 
+                                    concepts=['Series', 'Country-Series'], series='SP.POP.TOTL', economy='FRA;PER'):
+            print(meta.concept, meta.id, len(meta.metadata))
+
+    Notes:
+        Each return from the generator will include a unique concept/id pair and a complete corresponding metadata record        
+    '''
+
+    if concepts == 'all':
+        concepts = None
+    elif type(concepts) is str:
+        concepts = [concepts]
+
+    def metafield(concept):
+        '''Subroutine for returning individual metadata elements
+        '''
+
+        for var in concept['variable']:
+            id = var['id']
+            for field in var['metatype']:
+                yield (concept['id'], var['id'], var.get('name'), field)
+
+    m = Metadata(None, None, None)
+    for row in refetch(url, variables, concepts=True, **kwargs):
+        if concepts and row['id'] not in concepts:
+            continue
+
+        for (concept_name,variable_id,variable_name,field) in metafield(row):
+            if concept_name != m.concept or variable_id != m.id:
+                if m.concept:
+                    yield m
+
+                m = Metadata(concept_name, variable_id, variable_name)
+            
+            m.metadata[field['id']] = field['value']
+
+    if m.concept:
+        yield m
+
 def _responseHeader(url, result):
     '''Internal function to return the response header, which contains page information
     '''
