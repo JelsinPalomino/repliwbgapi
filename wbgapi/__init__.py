@@ -408,6 +408,39 @@ def metadata(url, variables, concepts='all', **kwargs):
     if m.concept:
         yield m
 
+def search(q, footnotes="none", brief=False, padding=80, db=None):
+    '''Search database metadata and return results as a print-friendly object
+
+    Arguments:
+        q:              search term
+
+        footnotes:      how to treat footnotes: 'include', 'only', or 'none'
+
+        brief:          abbreviate output (don't print matching values)
+
+        padding:        approximate number of surrounding characters to include when displaying text matching
+                        the search term. None returns the entire string
+
+        db:             database; pass None to access the global database
+
+    Returns:
+        a print-friendly object
+
+    Notes:
+        This function just provides a print-friendly front end to search2. If you need to 
+        access search results programmatically, call search2 directly
+
+    Example:
+        wbgapi.search('fossil fuels')
+    '''
+
+    result = MetaDataCollection(brief=brief, q=q, padding=padding)
+
+    for row in search2(q, footnotes=footnotes, db=db):
+        result.append(row)
+
+    return result
+
 def search2(q, footnotes='none', db=None):
     ''' search database metadata for matching text, returning a generator
 
