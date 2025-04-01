@@ -1,3 +1,4 @@
+
 '''wbgapi provides a comprehensive interface to the World Bank's data and
 metadata API with built-in pandas integration
 '''
@@ -320,33 +321,37 @@ def refetch(url, variables, **kwargs):
     except URLError:
         raise ValueError('{}: parameters exceed the API\'s maximum limit'.format(url))
 
-def abbreviate(text, q=None, padding=80):
-    '''Returns a shortened version of the text string comprised of the search pattern
-    and a specified number of characters on either side. This is used to optimize
-    search results. If the search pattern
+def get(url, params={}, concepts=False, lang=None):
+    '''Return a single response from the API
+    
+    Arguments:
+        url:        full URL fot the API query, minus the query string
+
+        params:     optional query string parameters (required defaults are supplied by the function)
+
+        concepts:   pass True to return a result at the concept level, as opposed to the element/variable level
+
+    Returns:
+        First row from the response
+
+    Example:
+        print(wbgapi.get('countries/BRA')['name'])
     '''
 
-    match = None
-    if q and padding is not None:
-        if padding > 0:
-            pattern = '(?<!\w).{{0, {len}}}{term}.{{0,{len}}}(?!\w)'.format(term=re.escape(q), len=padding)
-            match = re.search(pattern, text, re.IGNORECASE)
-        else:
-            match = re.search(q, text, re.IGNORECASE)
-    
-    if match and len(match.group(0)) + 6 < len(text):
-        return '...' + match.group(0) + '...'
-    
-    return text
+    global endpoint
 
+    if lang is None:
+        lang = globals()['lang']
 
-def htmlTable(*args, **kwargs):
-    """Generates an HTML table wrapped in a <div class="wbgapi" /> to allow users
-       to customize the display if they wish. All arguments are passed to tabulate;
-       you should not include the 'tablefmt=html' parameter
-    """
+    params_ = params.copy()
+    params_['page'] = 1
+    params_['format'] = 'json'
+    params_['per_page'] = 1
 
-    return '<div class="wbgapi">' + tabulate(*args, tablefmt='html', **kwargs) + '</div>'
+    url_ = '{}/{}/{}?{}'.format(endpoint, lang, url, urllib.parse.urlencode(params_))
+    (hdr,result) = _queryAPI(url_)
+    data = _responseObjects(url_, result, wantConcepts=concepts)
+    return data[0] if len(data) > 0 else None
 
 def _responseHeader(url, result):
     '''Internal function to return the response header, which contains page information
@@ -481,6 +486,32 @@ def Series(data, key='id', value='value', name=None):
 
     return pd.Series({row[key]: row[value] for row in data}, name=name)
 
+def htmlTable(*args, **kwargs):
+    """Generates an HTML table wrapped in a <div class="wbgapi" /> to allow users
+       to customize the display if they wish. All arguments are passed to tabulate;
+       you should not include the 'tablefmt=html' parameter
+    """
+
+    return '<div class="wbgapi">' + tabulate(*args, tablefmt='html', **kwargs) + '</div>'
+
+def abbreviate(text, q=None, padding=80):
+    '''Returns a shortened version of the text string comprised of the search pattern
+    and a specified number of characters on either side. This is used to optimize
+    search results. If the search pattern
+    '''
+
+    match = None
+    if q and padding is not None:
+        if padding > 0:
+            pattern = '(?<!\w).{{0, {len}}}{term}.{{0,{len}}}(?!\w)'.format(term=re.escape(q), len=padding)
+            match = re.search(pattern, text, re.IGNORECASE)
+        else:
+            match = re.search(q, text, re.IGNORECASE)
+    
+    if match and len(match.group(0)) + 6 < len(text):
+        return '...' + match.group(0) + '...'
+    
+    return text
 
 def _refetch_url(url, var, variables, **kwargs):
     '''Used to chunk potentially very longs URLs smaller ones by splitting long arguments
