@@ -1,14 +1,14 @@
 import setuptools
 import sys
 
-from wbgapi.__version__ import __version__ as pkgVersion
+# from wbgapi.__version__ import __version__ as pkgVersion
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name = "repliwbgapi",
-    version = pkgVersion,
+    version = '0.0.1',
     author = "Jelsin Stalin Palomino Huaytapuma",
     author_email="jstpalomino@hotmail.com",
     description="REPLICATION FOR LEARN - wbgapi provides a comprehensive interface to the World Bank's data and metadata APIs",
