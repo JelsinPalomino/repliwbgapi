@@ -18,6 +18,21 @@ import re
 _concepts = {}
 _metadata_flags = {}
 
+def get(db=None):
+    '''Retrieve the record for a single database
+
+    Arguments:
+        db:         the database ID (e.g., 2=WDI). Default to the global db
+
+    Returns:
+        a database object
+
+    Example:
+        print wbgapi.source.get(2)['name']
+    '''
+
+    return w.get(_sourceurl(db), {'dataid': 'y'})
+
 def concepts(db=None):
     '''Retrieve the concepts for the specified database. This functions also implements
     support for alternate dimension names for the 3 primary dimensions
@@ -91,3 +106,31 @@ def features(concept, id="all", db=None):
         return []
 
     return w.refetch('source/{source}/{concept}/{id}', ['id'], source=db, concept=concepts(db)[concept]['key'], id=id)
+
+def has_metadata(db=None):
+    '''Test whether the specified database is expected to have metadata, as determined 
+    by the database record returned from the API.
+
+    Arguments:
+        db:         the database to query. Pass None to reference the global database
+
+    Returns:
+        Boolean
+    '''
+
+    if db is None:
+        db = w.db
+
+    global _metadata_flags
+    m = _metadata_flags.get(db)
+    if m is None:
+        src = get(db)
+
+def _sourceurl(db):
+    '''Internal function: returns the URL for fetching database objects
+    '''
+
+    if db is None:
+        db = w.db
+
+    return 'sources/{}'.format(db)
