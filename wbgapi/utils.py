@@ -29,3 +29,22 @@ def qget(q):
     return None, False
 
 qmatch_expr = None
+
+def qmatch(q, text, fullSearch=True):
+
+    if q is None:
+        return True
+    
+    if fullSearch:
+        return q in text.lower()
+    
+    # otherwise, we remove any ending parenthetical component from the search string
+    global qmatch_expr
+    if qmatch_expr is None:
+        qmatch_expr = re.compile('(.+?)\\s*\\([^)]+?\\)\\s*$')
+
+    m = qmatch_expr.match(text)
+    if m:
+        text = m.group(1)
+    
+    return q in text.lower()
