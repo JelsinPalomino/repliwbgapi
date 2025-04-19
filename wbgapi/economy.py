@@ -67,7 +67,9 @@ def list(id='all', q=None, labels=False, skipAggs=False, db=None):
 
     update_caches()
     for row in w.source.features('economy', w.queryParam(id, 'economy', db=db), db=db):
-        _build
+        _build(row, labels)
+        if (skipAggs == False or row['aggregate'] == False) and utils.qmatch(q, row['value']):
+            yield row
 
 
 
