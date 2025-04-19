@@ -66,6 +66,26 @@ def list(id='all', q=None, labels=False, skipAggs=False, db=None):
     q, _ = utils.qget(q)
 
     update_caches()
+    for row in w.source.features('economy', w.queryParam(id, 'economy', db=db), db=db):
+        _build
+
+
+
+def _build(row, labels=False):
+    '''Utility function to build an economy record from API and cached data
+    '''
+
+    global _class_data, _localized_metadata
+
+    cd = _class_data.get(row['id'])
+    if cd is None:
+        cd = _class_data.get('___')
+    if cd:
+        row.update(cd)
+        row['capitalCity'] = _localized_metadata[w.lang].get('capitalCity:'+row['id'])
+        if labels:
+            for key in ['region', 'adminregion', 'lendingType', 'incomeLevel']:
+                row[key] = {'id': row[key], 'value': _localized_metadata[w.lang].get(row[key])}
 
 
 def update_caches():
