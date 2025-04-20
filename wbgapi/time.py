@@ -16,6 +16,31 @@ import builtins
 # This is an array of reverse value lookup tables
 _time_values = {}
 
+def list(id='all', q=None, db=None):
+    '''Return a list of time elements in the current database
+
+    Arguments:
+        id:             a time identifier or list-like
+
+        q:              search string (on value name)
+
+        db:             database; pass None to access the global database
+
+    Returns:
+        a generator object
+
+    Example:
+        # fetch even-numbered time elements for a decade
+        for elem in wbgapi.time.list(range(2010, 2020, 2)):
+            print(elem['id'], elem['value'])
+    '''
+
+    q,_ = utils.qget(q)
+
+    for row in w.source.features('time', w.queryParam(id, 'time', db=db), db=db):
+        if utils.qmatch(q, row['value']):
+            yield row
+
 
 def periods(db=None):
     '''Returns a dict of time features keyed by value for the current database. This is
