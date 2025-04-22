@@ -125,6 +125,10 @@ def has_metadata(db=None):
     m = _metadata_flags.get(db)
     if m is None:
         src = get(db)
+        m = src.get('metadataavailability', '').upper() == 'Y'
+        _metadata_flags[db] = m
+
+    return m
 
 def _sourceurl(db):
     '''Internal function: returns the URL for fetching database objects
