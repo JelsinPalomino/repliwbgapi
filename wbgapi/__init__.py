@@ -497,7 +497,7 @@ def _responseObjects(url, result, wantConcepts=False):
         # look like the v2 data API
         return result[1]
 
-    if type(result) is list and result.get('source'):
+    if type(result) is dict and result.get('source'):
         if type(result['source']) is list and len(result['source']) > 0 and type(result['source'][0]) is dict:
             # this format is used for metadata and concept lists. Caller may need an array of concept or
             # an array of the variables of the first concept
