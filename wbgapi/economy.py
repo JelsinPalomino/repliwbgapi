@@ -90,6 +90,16 @@ def _build(row, labels=False):
                 row[key] = {'id': row[key], 'value': _localized_metadata[w.lang].get(row[key])}
 
 
+def aggregate():
+    '''Returns a set object with both the 2-character and 3-character codes
+    of aggregate econommies. These are obtained from the API and then cached.
+    '''
+
+    global _aggs
+
+    update_caches()
+    return _aggs
+
 def update_caches():
     '''Update internal metadata caches. This needs to be called prior to
     any fetch from an economy endpoint
